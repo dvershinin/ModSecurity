@@ -189,8 +189,9 @@ SecAuditLogParts ABIJDEFHZ
 # Use a single file for logging. This is much easier to look at, but
 # assumes that you will use the audit log only ocassionally.
 #
-SecAuditLogType Serial
-SecAuditLog /var/log/modsec_audit.log
+SecAuditLogType Concurrent
+SecAuditLog /var/log/modsec/audit.log
+SecAuditLogStorageDir /var/log/modsec/nginx
 
 # Specify the path for concurrent audit logging.
 #SecAuditLogStorageDir /opt/modsecurity/var/audit/
