@@ -1,48 +1,68 @@
 #!/bin/sh
 
 CFLAGS="$CFLAGS \
-     -I/usr/include/apr-1.0  \
-     -I/usr/include/apr-1.0 -I/usr/include \
-    -I/usr/include/apache2 \
+     -I/usr/include/apr-1  \
+     -I/usr/include/apr-1  \
+    -I/usr/include/httpd \
     -I/usr/include/libxml2 \
-    -DWITH_LUA -I/usr/include/lua5.1   \
-    -DWITH_PCRE_STUDY -DMODSEC_PCRE_MATCH_LIMIT=1500 -DMODSEC_PCRE_MATCH_LIMIT_RECURSION=1500  -DREQUEST_EARLY          -DWITH_APU_CRYPTO -DWITH_REMOTE_RULES \
+    -DWITH_LUA   \
+    -DWITH_PCRE_STUDY   -DWITH_PCRE_JIT -DREQUEST_EARLY  -DCACHE_LUA           -DWITH_APU_CRYPTO -DWITH_REMOTE_RULES \
      \
-    -DWITH_YAJL -I/usr/include/yajl   \
-    -DWITH_SSDEEP -I/usr/"
+    -DWITH_YAJL   \
+    -DWITH_SSDEEP -I/usr//include"
 
-
-CORE_LIBS="$CORE_LIBS \
-     -L/usr/lib/x86_64-linux-gnu -lapr-1 \
-     -L/usr/lib/x86_64-linux-gnu -laprutil-1 \
-    -I/usr/include/apache2 \
-    -L/usr/lib/x86_64-linux-gnu -lcurl \
-    -lxml2 \
-    -llua5.1   \
+ngx_feature_incs="$ngx_addon_dir \
+    $ngx_addon_dir/../../standalone \
+    $ngx_addon_dir/../../apache2"
+ngx_feature_libs="$ngx_addon_dir/../../standalone/.libs/standalone.a \
+     -lapr-1 \
+     -L/usr/lib64 -laprutil-1 \
+    -I/usr/include/httpd \
+    -lcurl   \
+    -lxml2 -lz -lm -ldl \
+    -llua -lm -ldl   \
     -lpcre \
-    -L/usr/lib   \
+    -L/usr/lib64   \
     -lyajl   \
-    -lfuzzy"
+    -L/usr//lib -lfuzzy"
+
+ngx_modsecurity_opt_L=
 
 ngx_addon_name=ngx_http_modsecurity
 
-CORE_MODULES="$CORE_MODULES ngx_pool_context_module"
+if test -n "$ngx_module_link"; then
+    ngx_module_type=HTTP_FILTER
+    ngx_module_name="$ngx_addon_name ngx_pool_context_module"
+    ngx_module_srcs="$ngx_addon_dir/ngx_http_modsecurity.c \
+            $ngx_addon_dir/apr_bucket_nginx.c \
+            $ngx_addon_dir/ngx_pool_context.c \
+            "
+    ngx_module_deps="$ngx_addon_dir/apr_bucket_nginx.h \
+            $ngx_addon_dir/ngx_pool_context.h \
+            "
+    ngx_module_libs="$ngx_feature_libs"
+    ngx_module_incs="$ngx_feature_incs"
 
-HTTP_AUX_FILTER_MODULES="ngx_http_modsecurity $HTTP_AUX_FILTER_MODULES"
+    # org: ngx_module_order="ngx_http_chunked_filter ngx_http_v2_filter_module $ngx_module_name"
+    # from modsec 3:
+    ngx_module_order="ngx_http_chunked_filter_module ngx_http_v2_filter_module $ngx_module_name ngx_http_range_header_filter_module"
 
-NGX_ADDON_SRCS="$NGX_ADDON_SRCS \
-		$ngx_addon_dir/ngx_http_modsecurity.c \
-		$ngx_addon_dir/apr_bucket_nginx.c \
-		$ngx_addon_dir/ngx_pool_context.c"
+    . auto/module
+else
+    CORE_INCS="$CORE_INCS $ngx_feature_incs"
+    CORE_LIBS="$CORE_LIBS $ngx_feature_libs"
 
-NGX_ADDON_DEPS="$NGX_ADDON_DEPS \
-		$ngx_addon_dir/apr_bucket_nginx.h \
-		$ngx_addon_dir/ngx_pool_context.h"
+    CORE_MODULES="$CORE_MODULES ngx_pool_context_module"
 
-CORE_LIBS="$ngx_addon_dir/../../standalone/.libs/standalone.a $CORE_LIBS"
+    HTTP_AUX_FILTER_MODULES="ngx_http_modsecurity $HTTP_AUX_FILTER_MODULES"
 
-CORE_INCS="$CORE_INCS \
-	$ngx_addon_dir \
-	$ngx_addon_dir/../../standalone \
-	$ngx_addon_dir/../../apache2"
+    NGX_ADDON_SRCS="$NGX_ADDON_SRCS \
+            $ngx_addon_dir/ngx_http_modsecurity.c \
+            $ngx_addon_dir/apr_bucket_nginx.c \
+            $ngx_addon_dir/ngx_pool_context.c"
 
+    NGX_ADDON_DEPS="$NGX_ADDON_DEPS \
+            $ngx_addon_dir/apr_bucket_nginx.h \
+            $ngx_addon_dir/ngx_pool_context.h"
+
+fi
