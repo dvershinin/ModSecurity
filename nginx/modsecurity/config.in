@@ -11,8 +11,7 @@ CFLAGS="$CFLAGS \
     @YAJL_CFLAGS@ \
     @SSDEEP_CFLAGS@"
 
-ngx_feature_incs="/usr/include/apr-1 \
-    $ngx_addon_dir \
+ngx_feature_incs="$ngx_addon_dir \
     $ngx_addon_dir/../../standalone \
     $ngx_addon_dir/../../apache2"
 ngx_feature_libs="$ngx_addon_dir/../../standalone/.libs/standalone.a \
