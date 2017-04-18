@@ -1,5 +1,6 @@
-DD mmm YYYY - X.Y.Z (To be released)
+DD MMM YYYY - 2.9.2 - To be released
 ------------------------------------
+
 
  * Fix the input filter on ModSecurity Standalone. By fixing the input filter
    ModSecurity is able to perform full inspection of the request body,
@@ -7,34 +8,80 @@ DD mmm YYYY - X.Y.Z (To be released)
    [Issue #142, #582 and #830 - Andrey Kolganov (KEMP Technologies)]
  * Treat APR_INCOMPLETE as APR_EOF while receiving the request body.
    [Issue #1060, #334 - Alexey Sintsov]
+ * Adds rule id in logs whenever a rule fail.
+   [Issue #1379, #391 - Marc Stern]
+ * {dis|en}able-server-logging: Option to disable logging of
+   "Server" in audit log when log level < 9.
+   [Issue #1070 - Marc Stern]
+ * {dis|en}able-filename-logging: Option to disable logging of filename
+   in audit log.
+   [Issue #1065 - Marc Stern]
+ * Reads fuzzy hash databases on init
+   [Issue #1339 - Robert Paprocki and @Rendername]
+ * Changes the configuration to recognize soap+xml as XML
+   [Issue #1374 - @emphazer and Chaim Sanders]
+ * Fix building with nginx >= 1.11.11
+   [Issue #1373, #1359 - Andrei Belov and Thomas Deutschmann]
+ * Using Czechia instea of Czech Republic
+   [Issue #1258 - Michael Kjeldsen]
+ * {dis|en}able-rule-id-validation: Option to disable rule id validation
+   [Issue #1150 - Marc Stern and ModSecurity team]
+ * JSON Log: Append a newline to concurrent JSON audit logs
+   [Issue #1233 - Robert Paprocki]
+ * JSON Log: Don't unnecessarily rename request body parts in cleanup
+   [Issue #1223 - Robert Paprocki]
+ * Fix error message inside audit logs
+   [Issue #1216 and #1073 - Armin Abfalterer]
+ * Remove port from IPV4 address when running under IIS.
+   [Issue #1220, #1109 and #734  - Robert Culyer]
+ * Remove logdata and msg fields from JSON audit log rule.
+   [Issue #1190 and #1174 - Robert Paprocki]
+ * Better handle the json parser cleanup
+   [Issue #1204 - Ephraim Vider]
+ * Fix status failing to report in Nginx auditlogs
+   [Issue #977, #1171 - @charlymps and Chaim Sanders]
+ * Fix file upload JSON audit log entry
+   [Issue #1181 and #1173 - Robert Paprocki and Christian Folini]
+ * configure: Fix detection whether libcurl is linked against gnutls and,
+   move verbose_output declaration up to the beginning.
+   [Issue #1158 - Thomas Deutschmann (@Whissi)]
+ * Treat APR_INCOMPLETE as APR_EOF while receiving the request body.
+   [Issue #1060, #334 - Alexey Sintsov]
+
+09 Mar 2016 - 2.9.1
+-------------------
+
+ * No changes.
+
+03 Feb 2016 - 2.9.1-RC1
+-----------------------
+
  * Added support to generate audit logs in JSON format.
    [Issue #914, #897, #656 - Robert Paprocki]
- * Creating AuditLog serial file (or paralel index) respecting the
-   permission configured with SecAuditLogFileMode, before, it was used
-   only to save the transactions while in paralel mode.
+ * Creating AuditLog serial file (or parallel index) respecting the
+   permission configured with SecAuditLogFileMode. Previously, it was
+   used only to save the transactions while in parallel mode.
    [Issue #852 - @littlecho and ModSecurity team]
- * Checking for hashing injection response to report in case of failure.
+ * Checking for hashing injection response, to report in case of failure.
    [Issue #1041 - ModSecurity team]
  * Stop buffering when the request is larger than SecRequestBodyLimit
    in ProcessPartial mode
    [Issue #709, #705, #728 - Justin Gerace and ModSecurity team]
- * Extanded Lua support to include version 5.3
+ * Extended Lua support to include version 5.3
    [Issue #837, #762, #814 - Athmane Madjoudj and ModSecurity team]
- * mlogc: Allow user to choose between TLS versions (TLSProtocol option
+ * mlogc: Allows user to choose between TLS versions (TLSProtocol option
    introduced).
    [Issue #881 - Ishwor Gurung]
- * Allow mod_proxy's "nocanon" behavior to be specified in proxy actions
-   and Perform the intercept_action as well as the disruptive actions.
+ * Allows mod_proxy's "nocanon" behavior to be specified in proxy actions
    [Issue #1031, #961, #763 - Mario D. Santana and ModSecurity team]
- * Refactoring conditional directives for if wrappers, alternative if
-   statements and incomplete if conditions.
+ * Refactoring conditional #if/#defs directives.
    [Issue #996 - Wesley M and ModSecurity team]
  * mlogc-batch-load.pl.in: fix searching SecAuditLogStorageDir
    files with Apache 2.4
    [Issue #775 - Elia Pinto]
  * Understands IIS 10 as compatible on Windows installer.
    [Issue #931 - Anton Serbulov, Pavel Vasilevich and ModSecurity team]
- * Fix apache logging limitation by using correct apache call.
+ * Fix apache logging limitation by using correct Apache call.
    [Issue #840 - Christian Folini]
  * Fix apr_crypto.h check on 32-bit Linux platform
    [Issue #882, #883 - Kurt Newman]

@@ -559,34 +559,8 @@ static void write_rule_json(modsec_rec *msr, const msre_rule *rule, yajl_gen g) 
     if (rule->actionset->rev) {
         yajl_kv_string(g, "rev", log_escape(msr->mp, rule->actionset->rev));
     }
-    if (rule->actionset->msg) {
-        msc_string *var = (msc_string *)apr_palloc(msr->mp, sizeof(msc_string));
-        var->value = (char *)rule->actionset->msg;
-        var->value_len = strlen(rule->actionset->msg);
-        expand_macros(msr, var, NULL, msr->mp);
-
-        yajl_kv_string(g, "msg", log_escape_ex(msr->mp, var->value, var->value_len));
-    }
     if (rule->actionset->version) {
         yajl_kv_string(g, "version", log_escape(msr->mp, rule->actionset->version));
-    }
-    if (rule->actionset->logdata) {
-        msc_string *var = (msc_string *)apr_pcalloc(msr->mp, sizeof(msc_string));
-        var->value = (char *)rule->actionset->logdata;
-        var->value_len = strlen(rule->actionset->logdata);
-        expand_macros(msr, var, NULL, msr->mp);
-
-        char *logdata = apr_pstrdup(msr->mp, log_escape_hex(msr->mp, (unsigned char *)var->value, var->value_len));
-
-        // if it is > 512 bytes, then truncate at 512 with ellipsis.
-        if (strlen(logdata) > 515) {
-            logdata[512] = '.';
-            logdata[513] = '.';
-            logdata[514] = '.';
-            logdata[515] = '\0';
-        }
-
-        yajl_kv_string(g, "logdata", logdata);
     }
     if (rule->actionset->severity != NOT_SET) {
         yajl_kv_int(g, "severity", rule->actionset->severity);
@@ -611,6 +585,7 @@ static void write_rule_json(modsec_rec *msr, const msre_rule *rule, yajl_gen g) 
     for (k = 0; k < tarr->nelts; k++) {
         msre_action *action = (msre_action *)telts[k].val;
         if (strcmp(telts[k].key, "tag") == 0) {
+            msc_string *var = NULL;
             if (been_opened == 0) {
                 yajl_string(g, "tags");
                 yajl_gen_array_open(g);
@@ -618,7 +593,7 @@ static void write_rule_json(modsec_rec *msr, const msre_rule *rule, yajl_gen g) 
             }
 
             // expand variables in the tag
-            msc_string *var = (msc_string *)apr_pcalloc(msr->mp, sizeof(msc_string));
+            var = (msc_string *)apr_pcalloc(msr->mp, sizeof(msc_string));
             var->value = (char *)action->param;
             var->value_len = strlen(action->param);
             expand_macros(msr, var, NULL, msr->mp);
@@ -676,6 +651,9 @@ void sec_audit_logger_json(modsec_rec *msr) {
     int arg_min, arg_max, sanitize_matched;
     yajl_gen g;
     int been_opened = 0; // helper flag for conditionally opening maps
+    const unsigned char *final_buf;
+    size_t len;
+
 
     /* Return silently if we don't have a request line. This
      * means we will not be logging request timeouts.
@@ -1359,10 +1337,12 @@ void sec_audit_logger_json(modsec_rec *msr) {
         for(cfiles = 0; cfiles < msr->mpd->parts->nelts; cfiles++) {
             if (parts[cfiles]->type == MULTIPART_FILE) {
                 if(parts[cfiles]->filename != NULL) {
+                    yajl_gen_map_open(g);
                     yajl_kv_int(g, "file_size", parts[cfiles]->tmp_file_size);
                     yajl_kv_string(g, "file_name", log_escape(msr->mp, parts[cfiles]->filename));
                     yajl_kv_string(g, "content_type", parts[cfiles]->content_type ? parts[cfiles]->content_type : "<Unknown Content-Type>");
                     total_size += parts[cfiles]->tmp_file_size;
+                    yajl_gen_map_close(g);
                 }
             }
         }
@@ -1437,19 +1417,18 @@ void sec_audit_logger_json(modsec_rec *msr) {
     /* finished building JSON */
     yajl_gen_map_close(g); // box it up!
 
-    const unsigned char *final_buf;
-    size_t len;
     yajl_gen_get_buf(g, &final_buf, &len);
     sec_auditlog_write(msr, final_buf, len);
 
     yajl_gen_clear(g);
     yajl_gen_free(g);
 
+    sec_auditlog_write(msr, "\n", 1);
+
     /* Return here if we were writing to a serial log
      * as it does not need an index file.
      */
     if (msr->txcfg->auditlog_type != AUDITLOG_CONCURRENT) {
-        sec_auditlog_write(msr, "\n", 1);
 
         /* Unlock the mutex we used to serialise access to the audit log file. */
         rc = apr_global_mutex_unlock(msr->modsecurity->auditlog_lock);
@@ -1892,7 +1871,7 @@ void sec_audit_logger_native(modsec_rec *msr) {
 
         /* There are no response headers (or the status line) in HTTP 0.9 */
         if (msr->response_headers_sent) {
-            if (msr->status_line != NULL) {
+            if (msr->status_line != NULL && msr->status_line[0] != '\0') {
                 text = apr_psprintf(msr->mp, "%s %s\n", msr->response_protocol,
                         msr->status_line);
             } else {
@@ -2025,6 +2004,9 @@ void sec_audit_logger_native(modsec_rec *msr) {
         sec_auditlog_write_producer_header(msr);
 
         /* Server */
+#ifdef LOG_NO_SERVER
+		if (msr->txcfg->debuglog_level >= 9)
+#endif
         if (msr->server_software != NULL) {
             text = apr_psprintf(msr->mp, "Server: %s\n", msr->server_software);
             sec_auditlog_write(msr, text, strlen(text));

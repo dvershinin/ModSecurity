@@ -70,6 +70,22 @@ AC_SUBST(MSC_REGRESSION_DOCROOT_DIR)
 
 ### Configure Options
 
+# Verbose output
+AC_ARG_ENABLE(verbose-output,
+              AS_HELP_STRING([--enable-verbose-output],
+                             [Enable more verbose configure output.]),
+[
+  if test "$enableval" != "no"; then
+    verbose_output=1
+  else
+    verbose_output=0
+  fi
+],
+[
+  verbose_output=0
+])
+
+
 #OS type
 
 AC_CANONICAL_HOST
@@ -395,6 +411,52 @@ AC_ARG_ENABLE(request-early,
   request_early='-DREQUEST_EARLY'
 ])
 
+# Enable duplicate rules id
+AC_ARG_ENABLE(rule-id-validation,
+              AS_HELP_STRING([--enable-rule-id-validation],
+                             [Forbid duplicate rule ids and missing ones. This is the default]),
+[
+  if test "$enableval" != "no"; then
+    unique_id=
+  else
+    unique_id="-DALLOW_ID_NOT_UNIQUE"
+    MODSEC_EXTRA_CFLAGS="$MODSEC_EXTRA_CFLAGS $unique_id"
+  fi
+],
+[
+  unique_id=''
+])
+
+# Disable logging of filename
+AC_ARG_ENABLE(filename-logging,
+              AS_HELP_STRING([--enable-filename-logging],
+                             [Enable logging of filename in audit log. This is the default]),
+[
+  if test "$enableval" != "no"; then
+    log_filename=
+  else
+    log_filename="-DLOG_NO_FILENAME"
+  fi
+],
+[
+  log_filename=''
+])
+
+# Disable logging of "Server"
+AC_ARG_ENABLE(server-logging,
+              AS_HELP_STRING([--enable-server-logging],
+                             [Enable logging of "Server" in audit log when log level < 9. This is the default]),
+[
+  if test "$enableval" != "no"; then
+    log_server=
+  else
+    log_server="-DLOG_NO_SERVER"
+  fi
+],
+[
+  log_server=''
+])
+
 # Ignore configure errors
 AC_ARG_ENABLE(errors,
               AS_HELP_STRING([--disable-errors],
@@ -410,20 +472,6 @@ AC_ARG_ENABLE(errors,
   report_errors=1
 ])
 
-# Verbose output
-AC_ARG_ENABLE(verbose-output,
-              AS_HELP_STRING([--enable-verbose-output],
-                             [Enable more verbose configure output.]),
-[
-  if test "$enableval" != "no"; then
-    verbose_output=1
-  else
-    verbose_output=0
-  fi
-],
-[
-  verbose_output=0
-])
 
 # Strict Compile
 AC_ARG_ENABLE(strict-compile,
@@ -659,7 +707,7 @@ else
   fi
 fi
 
-MODSEC_EXTRA_CFLAGS="$pcre_study $pcre_match_limit $pcre_match_limit_recursion $pcre_jit $request_early $htaccess_config $lua_cache $debug_conf $debug_cache $debug_acmp $debug_mem $perf_meas $modsec_api $cpu_type"
+MODSEC_EXTRA_CFLAGS="$pcre_study $pcre_match_limit $pcre_match_limit_recursion $pcre_jit $request_early $htaccess_config $lua_cache $debug_conf $debug_cache $debug_acmp $debug_mem $perf_meas $modsec_api $cpu_type $unique_id $log_filename $log_server"
 
 APXS_WRAPPER=build/apxs-wrapper
 APXS_EXTRA_CFLAGS=""

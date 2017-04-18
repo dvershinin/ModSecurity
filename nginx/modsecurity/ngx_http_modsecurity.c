@@ -645,7 +645,68 @@ ngx_http_modsecurity_save_request_body(ngx_http_request_t *r)
 
     }
 
+
     r->headers_in.content_length_n = content_length;
+
+    if (ngx_buf_size(r->header_in)) {
+
+        /*
+         * ngx_http_set_keepalive will reuse r->header_in if
+         * (r->header_in != c->buffer && r->header_in.last != r->header_in.end),
+         * so we need this code block.
+         * see ngx_http_set_keepalive, ngx_http_alloc_large_header_buffer
+         */
+        cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
+
+        size = ngx_max(cscf->large_client_header_buffers.size,
+                       (size_t)content_length + ngx_buf_size(r->header_in));
+
+        hc = r->http_connection;
+
+#if defined(nginx_version) && nginx_version >= 1011011
+        if (hc->free && size == cscf->large_client_header_buffers.size) {
+
+            buf = hc->free->buf;
+#else
+        if (hc->nfree && size == cscf->large_client_header_buffers.size) {
+
+            buf = hc->free[--hc->nfree];
+#endif
+
+            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                           "ModSecurity: use http free large header buffer: %p %uz",
+                           buf->pos, buf->end - buf->last);
+
+        } else if (hc->nbusy < cscf->large_client_header_buffers.num) {
+
+            if (hc->busy == NULL) {
+                hc->busy = ngx_palloc(r->connection->pool,
+                                      cscf->large_client_header_buffers.num * sizeof(ngx_buf_t *));
+            }
+
+            if (hc->busy == NULL) {
+                return NGX_ERROR;
+            } else {
+                buf = ngx_create_temp_buf(r->connection->pool, size);
+            }
+        } else {
+            /* TODO: how to deal this case ? */
+            return NGX_ERROR;
+        }
+
+    } else {
+
+        buf = ngx_create_temp_buf(r->pool, (size_t) content_length);
+    }
+
+    if (buf == NULL) {
+        return NGX_ERROR;
+    }
+
+    if (apr_brigade_flatten(ctx->brigade, (char *)buf->pos,
+                            (apr_size_t *)&content_length) != APR_SUCCESS) {
+        return NGX_ERROR;
+    }
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "ModSec: Content length: %O, Content length n: %O", content_length,
